@@ -231,7 +231,17 @@ function readSettings_() {
 function getSpreadsheet_() { const id=getProp_(APP.PROP_SS_ID,''); if(!id) throw new Error('初期設定が未完了です。setupListenerBook を一度実行してください。'); return SpreadsheetApp.openById(id); }
 function findByToken_(token) { if(!token)return null; const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][18])===String(token)&&values[i][20]!=='削除') return {row:i+1,values:values[i]}; return null; }
 function findById_(id) { const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][0])===String(id)) return {row:i+1,values:values[i]}; return null; }
-function rowToListener_(r) { return { id:String(r[0]),createdAt:toIso_(r[1]),updatedAt:toIso_(r[2]),xName:String(r[3]||''),xReading:String(r[4]||''),youtubeName:String(r[5]||''),youtubeReading:String(r[6]||''),since:String(r[7]||''),source:String(r[8]||''),favoriteStreams:String(r[9]||'').split(' / ').filter(Boolean),watchTime:String(r[10]||''),gamesAnime:String(r[11]||''),hobby:String(r[12]||''),birthday:String(r[13]||''),callName:String(r[14]||''),message:String(r[15]||''),adminTag:String(r[16]||''),adminMemo:String(r[17]||''),publicScope:String(r[19]||'') }; }
+function rowToListener_(r) {
+  const editToken = String(r[18] || '');
+  return {
+    id:String(r[0]),createdAt:toIso_(r[1]),updatedAt:toIso_(r[2]),xName:String(r[3]||''),xReading:String(r[4]||''),
+    youtubeName:String(r[5]||''),youtubeReading:String(r[6]||''),since:String(r[7]||''),source:String(r[8]||''),
+    favoriteStreams:String(r[9]||'').split(' / ').filter(Boolean),watchTime:String(r[10]||''),gamesAnime:String(r[11]||''),
+    hobby:String(r[12]||''),birthday:String(r[13]||''),callName:String(r[14]||''),message:String(r[15]||''),
+    adminTag:String(r[16]||''),adminMemo:String(r[17]||''),publicScope:String(r[19]||''),
+    editUrl: editToken ? ScriptApp.getService().getUrl() + '?page=edit&token=' + encodeURIComponent(editToken) : ''
+  };
+}
 function sanitizeListener_(form) { form=form||{}; return { xName:clean_(form.xName,100),xReading:clean_(form.xReading,100),youtubeName:clean_(form.youtubeName,100),youtubeReading:clean_(form.youtubeReading,100),since:clean_(form.since,100),source:clean_(form.source,100),favoriteStreams:Array.isArray(form.favoriteStreams)?form.favoriteStreams.map(x=>clean_(x,50)).filter(Boolean).slice(0,20):[],watchTime:clean_(form.watchTime,100),gamesAnime:clean_(form.gamesAnime,APP.MAX_TEXT),hobby:clean_(form.hobby,APP.MAX_TEXT),birthday:clean_(form.birthday,20),callName:clean_(form.callName,100),message:clean_(form.message,1000),publicScope:clean_(form.publicScope,100)||'配信者のみ' }; }
 function clean_(v,max){return String(v==null?'':v).replace(/[<>]/g,'').replace(/\u0000/g,'').trim().slice(0,max||APP.MAX_TEXT)}
 function normalize_(v){return String(v||'').normalize('NFKC').replace(/[\s　]+/g,'').toLowerCase()}
