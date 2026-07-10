@@ -13,7 +13,7 @@ const APP = {
 const LISTENER_HEADERS = [
   'ID','登録日時','更新日時','Xのお名前','Xの読み方','XのURL','YouTubeのお名前','YouTubeの読み方',
   '推し始めた時期','知ったきっかけ','よく見る配信','配信をよく見る時間帯',
-  '好きなゲーム・アニメ','趣味','誕生日','呼び方','メッセージ',
+  '血液型','MBTI診断','好きなゲーム・アニメ','趣味','誕生日','呼び方','メッセージ',
   '管理タグ','管理メモ','編集トークン','公開範囲','状態'
 ];
 
@@ -81,7 +81,7 @@ function submitListener(form) {
   sh.appendRow([
     id, now, now, data.xName, data.xReading, data.xUrl, data.youtubeName, data.youtubeReading,
     data.since, data.source, data.favoriteStreams.join(' / '), data.watchTime,
-    data.gamesAnime, data.hobby, data.birthday, data.callName, data.message,
+    data.bloodType, data.mbti, data.gamesAnime, data.hobby, data.birthday, data.callName, data.message,
     '', '', token, data.publicScope, '有効'
   ]);
   log_('CREATE', id, data.xName);
@@ -105,8 +105,8 @@ function updateListenerByToken(token, form) {
   const updated = [
     old[0], old[1], new Date(), data.xName, data.xReading, data.xUrl, data.youtubeName, data.youtubeReading,
     data.since, data.source, data.favoriteStreams.join(' / '), data.watchTime,
-    data.gamesAnime, data.hobby, data.birthday, data.callName, data.message,
-    old[17], old[18], old[19], data.publicScope, old[21]
+    data.bloodType, data.mbti, data.gamesAnime, data.hobby, data.birthday, data.callName, data.message,
+    old[19], old[20], old[21], data.publicScope, old[23]
   ];
   getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getRange(found.row,1,1,updated.length).setValues([updated]);
   log_('UPDATE_BY_USER', old[0], data.xName);
@@ -124,7 +124,7 @@ function adminLogin(password) {
 function adminGetListeners(sessionToken, filters) {
   assertAdmin_(sessionToken);
   const values = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getValues().slice(1)
-    .filter(r => r[21] !== '削除').map(rowToListener_);
+    .filter(r => r[23] !== '削除').map(rowToListener_);
   const f = filters || {}; let list = values; const q = normalize_(f.query || '');
   if (q) list = list.filter(x => normalize_([x.xName,x.xReading,x.xUrl,x.youtubeName,x.youtubeReading,x.callName].join(' ')).includes(q));
   if (f.tag) list = list.filter(x => x.adminTag === f.tag);
@@ -146,9 +146,11 @@ function adminUpdateListener(sessionToken, id, patch) {
   if (patch.xUrl !== undefined) next[5] = cleanUrl_(patch.xUrl);
   if (patch.youtubeName !== undefined) next[6] = clean_(patch.youtubeName,100);
   if (patch.youtubeReading !== undefined) next[7] = clean_(patch.youtubeReading,100);
-  if (patch.callName !== undefined) next[15] = clean_(patch.callName,100);
-  if (patch.adminTag !== undefined) next[17] = clean_(patch.adminTag,100);
-  if (patch.adminMemo !== undefined) next[18] = clean_(patch.adminMemo,2000);
+  if (patch.bloodType !== undefined) next[12] = clean_(patch.bloodType,20);
+  if (patch.mbti !== undefined) next[13] = clean_(patch.mbti,200);
+  if (patch.callName !== undefined) next[17] = clean_(patch.callName,100);
+  if (patch.adminTag !== undefined) next[19] = clean_(patch.adminTag,100);
+  if (patch.adminMemo !== undefined) next[20] = clean_(patch.adminMemo,2000);
   getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getRange(found.row,1,1,next.length).setValues([next]);
   log_('UPDATE_BY_ADMIN',id,next[3]); return {ok:true};
 }
@@ -156,13 +158,13 @@ function adminUpdateListener(sessionToken, id, patch) {
 function adminDeleteListener(sessionToken, id) {
   assertAdmin_(sessionToken); const found = findById_(id); if (!found) throw new Error('対象データが見つかりません。');
   const sh = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS);
-  sh.getRange(found.row,22).setValue('削除'); sh.getRange(found.row,3).setValue(new Date());
+  sh.getRange(found.row,24).setValue('削除'); sh.getRange(found.row,3).setValue(new Date());
   log_('DELETE',id,found.values[3]); return {ok:true};
 }
 
 function adminExportCsv(sessionToken) {
   assertAdmin_(sessionToken);
-  const values = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getDisplayValues().filter((r,i)=>i===0||r[21]!=='削除');
+  const values = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getDisplayValues().filter((r,i)=>i===0||r[23]!=='削除');
   const csv = values.map(row=>row.map(csvCell_).join(',')).join('\r\n');
   return { fileName:'monooki-residents-'+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),'yyyyMMdd-HHmm')+'.csv', csv };
 }
@@ -237,21 +239,21 @@ function readSettings_() {
 }
 
 function getSpreadsheet_() { const id=getProp_(APP.PROP_SS_ID,''); if(!id) throw new Error('初期設定が未完了です。setupListenerBook を一度実行してください。'); return SpreadsheetApp.openById(id); }
-function findByToken_(token) { if(!token)return null; const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][19])===String(token)&&values[i][21]!=='削除') return {row:i+1,values:values[i]}; return null; }
+function findByToken_(token) { if(!token)return null; const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][21])===String(token)&&values[i][23]!=='削除') return {row:i+1,values:values[i]}; return null; }
 function findById_(id) { const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][0])===String(id)) return {row:i+1,values:values[i]}; return null; }
 function rowToListener_(r) {
-  const editToken = String(r[19] || '');
+  const editToken = String(r[21] || '');
   return {
     id:String(r[0]),createdAt:toIso_(r[1]),updatedAt:toIso_(r[2]),xName:String(r[3]||''),xReading:String(r[4]||''),xUrl:String(r[5]||''),
     youtubeName:String(r[6]||''),youtubeReading:String(r[7]||''),since:String(r[8]||''),source:String(r[9]||''),
-    favoriteStreams:String(r[10]||'').split(' / ').filter(Boolean),watchTime:String(r[11]||''),gamesAnime:String(r[12]||''),
-    hobby:String(r[13]||''),birthday:String(r[14]||''),callName:String(r[15]||''),message:String(r[16]||''),
-    adminTag:String(r[17]||''),adminMemo:String(r[18]||''),publicScope:String(r[20]||''),
+    favoriteStreams:String(r[10]||'').split(' / ').filter(Boolean),watchTime:String(r[11]||''),bloodType:String(r[12]||''),mbti:String(r[13]||''),gamesAnime:String(r[14]||''),
+    hobby:String(r[15]||''),birthday:String(r[16]||''),callName:String(r[17]||''),message:String(r[18]||''),
+    adminTag:String(r[19]||''),adminMemo:String(r[20]||''),publicScope:String(r[22]||''),
     editUrl: editToken ? ScriptApp.getService().getUrl() + '?page=edit&token=' + encodeURIComponent(editToken) : ''
   };
 }
 
-function sanitizeListener_(form) { form=form||{}; return { xName:clean_(form.xName,100),xReading:clean_(form.xReading,100),xUrl:cleanUrl_(form.xUrl),youtubeName:clean_(form.youtubeName,100),youtubeReading:clean_(form.youtubeReading,100),since:clean_(form.since,100),source:clean_(form.source,100),favoriteStreams:Array.isArray(form.favoriteStreams)?form.favoriteStreams.map(x=>clean_(x,50)).filter(Boolean).slice(0,20):[],watchTime:clean_(form.watchTime,100),gamesAnime:clean_(form.gamesAnime,APP.MAX_TEXT),hobby:clean_(form.hobby,APP.MAX_TEXT),birthday:clean_(form.birthday,20),callName:clean_(form.callName,100),message:clean_(form.message,1000),publicScope:clean_(form.publicScope,100)||'配信者のみ' }; }
+function sanitizeListener_(form) { form=form||{}; return { xName:clean_(form.xName,100),xReading:clean_(form.xReading,100),xUrl:cleanUrl_(form.xUrl),youtubeName:clean_(form.youtubeName,100),youtubeReading:clean_(form.youtubeReading,100),since:clean_(form.since,100),source:clean_(form.source,100),favoriteStreams:Array.isArray(form.favoriteStreams)?form.favoriteStreams.map(x=>clean_(x,50)).filter(Boolean).slice(0,20):[],watchTime:clean_(form.watchTime,100),bloodType:clean_(form.bloodType,20),mbti:clean_(form.mbti,200),gamesAnime:clean_(form.gamesAnime,APP.MAX_TEXT),hobby:clean_(form.hobby,APP.MAX_TEXT),birthday:clean_(form.birthday,20),callName:clean_(form.callName,100),message:clean_(form.message,1000),publicScope:clean_(form.publicScope,100)||'配信者のみ' }; }
 function cleanUrl_(v){const s=clean_(v,300);if(!s)return '';if(!/^https:\/\/(x\.com|twitter\.com)\//i.test(s))throw new Error('XのURLは https://x.com/ から始まるURLを入力してください。');return s}
 function clean_(v,max){return String(v==null?'':v).replace(/[<>]/g,'').replace(/\u0000/g,'').trim().slice(0,max||APP.MAX_TEXT)}
 function normalize_(v){return String(v||'').normalize('NFKC').replace(/[\s　]+/g,'').toLowerCase()}
