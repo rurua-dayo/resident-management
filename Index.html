@@ -1,11 +1,11 @@
 <!doctype html><html><head><base target="_top"><?!= include('Styles'); ?><style>:root{--theme:<?= themeColor ?>}</style></head><body><div class="wrap">
-<div class="hero"><h1><?= appName ?></h1><div>あなたのことを少しだけ教えてください。</div></div>
+<div class="hero"><h1><?= appName ?></h1><div>物置の住人になるために、あなたのことを少し教えてね。</div></div>
 <div id="msg"></div><form id="form" class="card"><div class="grid">
-<div><label>お名前・ハンドルネーム *</label><input name="name" maxlength="100" required></div>
-<div><label>読み方</label><input name="reading" maxlength="100"></div>
+<div><label>Xのお名前 *</label><input name="name" maxlength="100" required placeholder="Xで使っているお名前"></div>
+<div><label>YouTubeのお名前</label><input name="youtubeName" maxlength="100" placeholder="YouTubeで使っているお名前"></div><div><label>読み方</label><input name="reading" maxlength="100"></div>
 <div><label>呼んでほしい名前・呼び方</label><input name="callName" maxlength="100"></div>
 <div><label>推し始めた時期</label><input name="since" placeholder="例：2026年4月ごろ"></div>
-<div class="full"><label>配信を知ったきっかけ</label><select name="source" id="source"><option value="">選択してください</option></select></div>
+<div class="full"><label>知ったきっかけ</label><select name="source" id="source"><option value="">選択してください</option></select></div>
 <div class="full"><label>好きな配信</label><div id="streams" class="checks"></div></div>
 <div class="full"><label>好きなゲーム・アニメ</label><textarea name="gamesAnime" maxlength="500"></textarea></div>
 <div class="full"><label>趣味</label><textarea name="hobby" maxlength="500"></textarea></div>
@@ -13,9 +13,9 @@
 <div><label>公開範囲</label><select name="publicScope"><option>配信者のみ</option><option>配信内で紹介してもよい</option><option>ほかのリスナーにも公開してよい</option></select></div>
 <div class="full"><label>配信者へのメッセージ</label><textarea name="message" maxlength="1000"></textarea></div>
 <div class="hidden"><input name="website" autocomplete="off"></div>
-<div class="full"><button class="primary" id="submitBtn" type="submit">登録する</button></div>
+<div class="full"><button class="primary" id="submitBtn" type="submit">住人登録する</button></div>
 </div></form>
-<div id="done" class="card hidden"><h2>登録できました！</h2><p>配信で会えるのを楽しみにしています。</p><div id="dup" class="notice hidden">同じ名前の登録が見つかりました。重複している可能性があります。</div><p class="muted">あなた専用の編集URLです。なくさないように保存してください。</p><input id="editUrl" readonly><div class="actions"><button class="secondary" onclick="copyEditUrl()">編集URLをコピー</button></div></div>
+<div id="done" class="card hidden"><h2>住人登録ができました！</h2><p>これから物置で会えるのを楽しみにしています。</p><div id="dup" class="notice hidden">同じ名前の登録が見つかりました。重複している可能性があります。</div><p class="muted">あなた専用の編集URLです。なくさないように保存してください。</p><input id="editUrl" readonly><div class="actions"><button class="secondary" onclick="copyEditUrl()">編集URLをコピー</button></div></div>
 </div><script>
 let config={};google.script.run.withSuccessHandler(c=>{config=c;document.getElementById('source').insertAdjacentHTML('beforeend',c.sources.map(x=>`<option>${esc(x)}</option>`).join(''));document.getElementById('streams').innerHTML=c.streams.map(x=>`<label class="chip"><input type="checkbox" name="favoriteStreams" value="${esc(x)}">${esc(x)}</label>`).join('')}).withFailureHandler(showErr).getPublicConfig();
 document.getElementById('form').addEventListener('submit',e=>{e.preventDefault();const b=document.getElementById('submitBtn');b.disabled=true;const f=new FormData(e.target);const obj=Object.fromEntries(f.entries());obj.favoriteStreams=f.getAll('favoriteStreams');google.script.run.withSuccessHandler(r=>{document.getElementById('form').classList.add('hidden');document.getElementById('done').classList.remove('hidden');document.getElementById('editUrl').value=r.editUrl;if(r.duplicateWarning)document.getElementById('dup').classList.remove('hidden');scrollTo(0,0)}).withFailureHandler(err=>{showErr(err);b.disabled=false}).submitListener(obj)});
