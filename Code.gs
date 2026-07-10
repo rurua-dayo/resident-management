@@ -137,6 +137,15 @@ function adminGetListeners(sessionToken, filters) {
   return { listeners:list, settings:readSettings_() };
 }
 
+function adminGetAllListeners(sessionToken) {
+  assertAdmin_(sessionToken);
+  const list = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getValues().slice(1)
+    .filter(r => r[23] !== '削除')
+    .map(rowToListener_)
+    .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  return list;
+}
+
 function adminUpdateListener(sessionToken, id, patch) {
   assertAdmin_(sessionToken);
   const found = findById_(id); if (!found) throw new Error('対象データが見つかりません。');
@@ -160,13 +169,6 @@ function adminDeleteListener(sessionToken, id) {
   const sh = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS);
   sh.getRange(found.row,24).setValue('削除'); sh.getRange(found.row,3).setValue(new Date());
   log_('DELETE',id,found.values[3]); return {ok:true};
-}
-
-function adminExportCsv(sessionToken) {
-  assertAdmin_(sessionToken);
-  const values = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getDisplayValues().filter((r,i)=>i===0||r[23]!=='削除');
-  const csv = values.map(row=>row.map(csvCell_).join(',')).join('\r\n');
-  return { fileName:'monooki-residents-'+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),'yyyyMMdd-HHmm')+'.csv', csv };
 }
 
 function adminChangePassword(sessionToken,currentPassword,newPassword) {
