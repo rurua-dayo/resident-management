@@ -200,11 +200,13 @@ function setupSettingsSheet_(ss) {
   if (sh.getLastRow() === 0) sh.getRange(1,1,1,3).setValues([['種別','値','有効']]);
   let rows = sh.getDataRange().getDisplayValues().slice(1).filter(r=>r.some(Boolean));
   rows = rows.map(r => [r[0] === '好きな配信' ? 'よく見る配信' : r[0], r[1], r[2] || 'TRUE']);
+  // 管理タグは指定の4種類へ置き換えるため、既存の管理タグ設定をいったん除外する。
+  rows = rows.filter(r => r[0] !== '管理タグ');
   const defaults = [
     ['よく見る配信','雑談','TRUE'],['よく見る配信','ゲーム','TRUE'],['よく見る配信','歌','TRUE'],['よく見る配信','企画','TRUE'],
     ['よく見る配信','案件','TRUE'],['よく見る配信','正拳突き','TRUE'],['よく見る配信','朗読','TRUE'],['よく見る配信','おはよう','TRUE'],
     ['知ったきっかけ','YouTubeのおすすめ','TRUE'],['知ったきっかけ','X（旧Twitter）','TRUE'],['知ったきっかけ','切り抜き動画','TRUE'],['知ったきっかけ','友人・知人','TRUE'],['知ったきっかけ','その他','TRUE'],
-    ['管理タグ','初見さん','TRUE'],['管理タグ','覚えた','TRUE'],['管理タグ','常連さん','TRUE'],['管理タグ','要確認','TRUE']
+    ['管理タグ','覚えた','TRUE'],['管理タグ','常連さん','TRUE'],['管理タグ','モデレーター','TRUE'],['管理タグ','要注意人物','TRUE']
   ];
   const keys = new Set(rows.map(r=>r[0]+'\t'+r[1]));
   defaults.forEach(r=>{ if(!keys.has(r[0]+'\t'+r[1])) rows.push(r); });
