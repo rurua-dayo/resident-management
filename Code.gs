@@ -14,7 +14,7 @@ function doGet(e) {
   const page = String((e && e.parameter && e.parameter.page) || 'index').toLowerCase();
   const tplName = page === 'admin' ? 'Admin' : page === 'edit' ? 'Edit' : 'Index';
   const t = HtmlService.createTemplateFromFile(tplName);
-  t.appName = getProp_(APP.PROP_APP_NAME, 'リスナーブック');
+  t.appName = getProp_(APP.PROP_APP_NAME, '物置の住人登録届');
   t.themeColor = getProp_(APP.PROP_THEME, '#7c5cff');
   t.editToken = String((e && e.parameter && e.parameter.token) || '');
   return t.evaluate()
@@ -34,7 +34,7 @@ function setupListenerBook() {
   if (ssId) {
     ss = SpreadsheetApp.openById(ssId);
   } else {
-    ss = SpreadsheetApp.create('リスナーブック データ');
+    ss = SpreadsheetApp.create('物置の住人登録届 データ');
     props.setProperty(APP.PROP_SS_ID, ss.getId());
   }
 
@@ -43,7 +43,7 @@ function setupListenerBook() {
   setupLogsSheet_(ss);
 
   if (!props.getProperty(APP.PROP_ADMIN_PASS)) props.setProperty(APP.PROP_ADMIN_PASS, 'change-me');
-  if (!props.getProperty(APP.PROP_APP_NAME)) props.setProperty(APP.PROP_APP_NAME, 'リスナーブック');
+  if (!props.getProperty(APP.PROP_APP_NAME)) props.setProperty(APP.PROP_APP_NAME, '物置の住人登録届');
   if (!props.getProperty(APP.PROP_THEME)) props.setProperty(APP.PROP_THEME, '#7c5cff');
 
   return {
@@ -54,10 +54,17 @@ function setupListenerBook() {
   };
 }
 
+function applyMonookiDesign() {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty(APP.PROP_APP_NAME, '物置の住人登録届');
+  props.setProperty(APP.PROP_THEME, '#f28fb3');
+  return 'サイト名とテーマカラーを更新しました。';
+}
+
 function getPublicConfig() {
   const settings = readSettings_();
   return {
-    appName: getProp_(APP.PROP_APP_NAME, 'リスナーブック'),
+    appName: getProp_(APP.PROP_APP_NAME, '物置の住人登録届'),
     themeColor: getProp_(APP.PROP_THEME, '#7c5cff'),
     streams: settings.streams,
     sources: settings.sources,
@@ -67,7 +74,7 @@ function getPublicConfig() {
 function submitListener(form) {
   rateLimit_('submit', 10);
   const data = sanitizeListener_(form);
-  if (!data.name) throw new Error('お名前は必須です。');
+  if (!data.name) throw new Error('Xのお名前は必須です。');
   if (String(form.website || '').trim()) throw new Error('送信に失敗しました。');
 
   const ss = getSpreadsheet_();
@@ -81,7 +88,7 @@ function submitListener(form) {
   sh.appendRow([
     id, now, now, data.name, data.reading, data.since, data.source,
     data.favoriteStreams.join(' / '), data.gamesAnime, data.hobby, data.birthday,
-    data.callName, data.message, '', '', token, data.publicScope, '有効'
+    data.callName, data.message, '', '', token, data.publicScope, '有効', data.youtubeName
   ]);
 
   log_('CREATE', id, data.name);
@@ -104,7 +111,7 @@ function updateListenerByToken(token, form) {
   const found = findByToken_(token);
   if (!found) throw new Error('編集URLが無効です。');
   const data = sanitizeListener_(form);
-  if (!data.name) throw new Error('お名前は必須です。');
+  if (!data.name) throw new Error('Xのお名前は必須です。');
 
   const sh = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS);
   const row = found.row;
@@ -112,7 +119,7 @@ function updateListenerByToken(token, form) {
   const updated = [
     old[0], old[1], new Date(), data.name, data.reading, data.since, data.source,
     data.favoriteStreams.join(' / '), data.gamesAnime, data.hobby, data.birthday,
-    data.callName, data.message, old[13], old[14], old[15], data.publicScope, old[17]
+    data.callName, data.message, old[13], old[14], old[15], data.publicScope, old[17], data.youtubeName
   ];
   sh.getRange(row, 1, 1, updated.length).setValues([updated]);
   log_('UPDATE_BY_USER', old[0], data.name);
@@ -127,7 +134,7 @@ function adminLogin(password) {
   }
   const token = Utilities.getUuid();
   CacheService.getScriptCache().put('ADMIN_' + token, '1', APP.SESSION_TTL);
-  return { token, appName: getProp_(APP.PROP_APP_NAME, 'リスナーブック') };
+  return { token, appName: getProp_(APP.PROP_APP_NAME, '物置の住人登録届') };
 }
 
 function adminGetListeners(sessionToken, filters) {
@@ -140,7 +147,7 @@ function adminGetListeners(sessionToken, filters) {
   const f = filters || {};
   let list = values;
   const q = normalize_(f.query || '');
-  if (q) list = list.filter(x => normalize_(x.name + ' ' + x.reading + ' ' + x.callName).includes(q));
+  if (q) list = list.filter(x => normalize_(x.name + ' ' + x.youtubeName + ' ' + x.reading + ' ' + x.callName).includes(q));
   if (f.tag) list = list.filter(x => x.adminTag === f.tag);
   if (f.stream) list = list.filter(x => x.favoriteStreams.includes(f.stream));
 
@@ -162,6 +169,7 @@ function adminUpdateListener(sessionToken, id, patch) {
   const next = old.slice();
   next[2] = new Date();
   if (patch.name !== undefined) next[3] = clean_(patch.name, 100);
+  if (patch.youtubeName !== undefined) next[18] = clean_(patch.youtubeName, 100);
   if (patch.reading !== undefined) next[4] = clean_(patch.reading, 100);
   if (patch.callName !== undefined) next[11] = clean_(patch.callName, 100);
   if (patch.adminTag !== undefined) next[13] = clean_(patch.adminTag, 100);
@@ -187,7 +195,7 @@ function adminExportCsv(sessionToken) {
   const sh = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS);
   const values = sh.getDataRange().getDisplayValues().filter((r, i) => i === 0 || r[17] !== '削除');
   const csv = values.map(row => row.map(csvCell_).join(',')).join('\r\n');
-  return { fileName: 'listener-book-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmm') + '.csv', csv };
+  return { fileName: 'monooki-residents-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmm') + '.csv', csv };
 }
 
 function adminChangePassword(sessionToken, currentPassword, newPassword) {
@@ -200,10 +208,10 @@ function adminChangePassword(sessionToken, currentPassword, newPassword) {
 }
 
 function setupListenersSheet_(ss) {
-  const headers = ['ID','登録日時','更新日時','お名前','読み方','推し始めた時期','知ったきっかけ','好きな配信','好きなゲーム・アニメ','趣味','誕生日','呼び方','メッセージ','管理タグ','管理メモ','編集トークン','公開範囲','状態'];
+  const headers = ['ID','登録日時','更新日時','Xのお名前','読み方','推し始めた時期','知ったきっかけ','好きな配信','好きなゲーム・アニメ','趣味','誕生日','呼び方','メッセージ','管理タグ','管理メモ','編集トークン','公開範囲','状態','YouTubeのお名前'];
   let sh = ss.getSheetByName(APP.SHEET_LISTENERS);
   if (!sh) sh = ss.insertSheet(APP.SHEET_LISTENERS);
-  if (sh.getLastRow() === 0) sh.getRange(1,1,1,headers.length).setValues([headers]);
+  sh.getRange(1,1,1,headers.length).setValues([headers]);
   sh.getRange(1,1,1,headers.length).setFontWeight('bold').setBackground('#ede9fe');
   sh.setFrozenRows(1);
 }
@@ -263,14 +271,15 @@ function rowToListener_(r) {
     id: String(r[0]), createdAt: toIso_(r[1]), updatedAt: toIso_(r[2]), name: String(r[3] || ''), reading: String(r[4] || ''),
     since: String(r[5] || ''), source: String(r[6] || ''), favoriteStreams: String(r[7] || '').split(' / ').filter(Boolean),
     gamesAnime: String(r[8] || ''), hobby: String(r[9] || ''), birthday: String(r[10] || ''), callName: String(r[11] || ''),
-    message: String(r[12] || ''), adminTag: String(r[13] || ''), adminMemo: String(r[14] || ''), publicScope: String(r[16] || '')
+    message: String(r[12] || ''), adminTag: String(r[13] || ''), adminMemo: String(r[14] || ''), publicScope: String(r[16] || ''),
+    youtubeName: String(r[18] || '')
   };
 }
 
 function sanitizeListener_(form) {
   form = form || {};
   return {
-    name: clean_(form.name, 100), reading: clean_(form.reading, 100), since: clean_(form.since, 100), source: clean_(form.source, 100),
+    name: clean_(form.name, 100), youtubeName: clean_(form.youtubeName, 100), reading: clean_(form.reading, 100), since: clean_(form.since, 100), source: clean_(form.source, 100),
     favoriteStreams: Array.isArray(form.favoriteStreams) ? form.favoriteStreams.map(x => clean_(x, 50)).filter(Boolean).slice(0, 20) : [],
     gamesAnime: clean_(form.gamesAnime, APP.MAX_TEXT), hobby: clean_(form.hobby, APP.MAX_TEXT), birthday: clean_(form.birthday, 20),
     callName: clean_(form.callName, 100), message: clean_(form.message, 1000), publicScope: clean_(form.publicScope, 100) || '配信者のみ',
