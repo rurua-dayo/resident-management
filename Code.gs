@@ -11,7 +11,7 @@ const APP = {
 };
 
 const LISTENER_HEADERS = [
-  'ID','登録日時','更新日時','Xのお名前','Xの読み方','YouTubeのお名前','YouTubeの読み方',
+  'ID','登録日時','更新日時','Xのお名前','Xの読み方','XのURL','YouTubeのお名前','YouTubeの読み方',
   '推し始めた時期','知ったきっかけ','よく見る配信','配信をよく見る時間帯',
   '好きなゲーム・アニメ','趣味','誕生日','呼び方','メッセージ',
   '管理タグ','管理メモ','編集トークン','公開範囲','状態'
@@ -73,13 +73,13 @@ function submitListener(form) {
   const values = sh.getDataRange().getValues();
   const duplicate = values.slice(1).some(r =>
     (data.xName && normalize_(r[3]) === normalize_(data.xName)) ||
-    (data.youtubeName && normalize_(r[5]) === normalize_(data.youtubeName))
+    (data.youtubeName && normalize_(r[6]) === normalize_(data.youtubeName))
   );
 
   const now = new Date(), id = Utilities.getUuid();
   const token = Utilities.getUuid().replace(/-/g,'') + Utilities.getUuid().replace(/-/g,'');
   sh.appendRow([
-    id, now, now, data.xName, data.xReading, data.youtubeName, data.youtubeReading,
+    id, now, now, data.xName, data.xReading, data.xUrl, data.youtubeName, data.youtubeReading,
     data.since, data.source, data.favoriteStreams.join(' / '), data.watchTime,
     data.gamesAnime, data.hobby, data.birthday, data.callName, data.message,
     '', '', token, data.publicScope, '有効'
@@ -103,10 +103,10 @@ function updateListenerByToken(token, form) {
   if (!data.xName) throw new Error('Xのお名前は必須です。');
   const old = found.values;
   const updated = [
-    old[0], old[1], new Date(), data.xName, data.xReading, data.youtubeName, data.youtubeReading,
+    old[0], old[1], new Date(), data.xName, data.xReading, data.xUrl, data.youtubeName, data.youtubeReading,
     data.since, data.source, data.favoriteStreams.join(' / '), data.watchTime,
     data.gamesAnime, data.hobby, data.birthday, data.callName, data.message,
-    old[16], old[17], old[18], data.publicScope, old[20]
+    old[17], old[18], old[19], data.publicScope, old[21]
   ];
   getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getRange(found.row,1,1,updated.length).setValues([updated]);
   log_('UPDATE_BY_USER', old[0], data.xName);
@@ -124,9 +124,9 @@ function adminLogin(password) {
 function adminGetListeners(sessionToken, filters) {
   assertAdmin_(sessionToken);
   const values = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getValues().slice(1)
-    .filter(r => r[20] !== '削除').map(rowToListener_);
+    .filter(r => r[21] !== '削除').map(rowToListener_);
   const f = filters || {}; let list = values; const q = normalize_(f.query || '');
-  if (q) list = list.filter(x => normalize_([x.xName,x.xReading,x.youtubeName,x.youtubeReading,x.callName].join(' ')).includes(q));
+  if (q) list = list.filter(x => normalize_([x.xName,x.xReading,x.xUrl,x.youtubeName,x.youtubeReading,x.callName].join(' ')).includes(q));
   if (f.tag) list = list.filter(x => x.adminTag === f.tag);
   if (f.stream) list = list.filter(x => x.favoriteStreams.includes(f.stream));
   switch (f.sort) {
@@ -143,11 +143,12 @@ function adminUpdateListener(sessionToken, id, patch) {
   const next = found.values.slice(); next[2] = new Date();
   if (patch.xName !== undefined) next[3] = clean_(patch.xName,100);
   if (patch.xReading !== undefined) next[4] = clean_(patch.xReading,100);
-  if (patch.youtubeName !== undefined) next[5] = clean_(patch.youtubeName,100);
-  if (patch.youtubeReading !== undefined) next[6] = clean_(patch.youtubeReading,100);
-  if (patch.callName !== undefined) next[14] = clean_(patch.callName,100);
-  if (patch.adminTag !== undefined) next[16] = clean_(patch.adminTag,100);
-  if (patch.adminMemo !== undefined) next[17] = clean_(patch.adminMemo,2000);
+  if (patch.xUrl !== undefined) next[5] = cleanUrl_(patch.xUrl);
+  if (patch.youtubeName !== undefined) next[6] = clean_(patch.youtubeName,100);
+  if (patch.youtubeReading !== undefined) next[7] = clean_(patch.youtubeReading,100);
+  if (patch.callName !== undefined) next[15] = clean_(patch.callName,100);
+  if (patch.adminTag !== undefined) next[17] = clean_(patch.adminTag,100);
+  if (patch.adminMemo !== undefined) next[18] = clean_(patch.adminMemo,2000);
   getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getRange(found.row,1,1,next.length).setValues([next]);
   log_('UPDATE_BY_ADMIN',id,next[3]); return {ok:true};
 }
@@ -155,13 +156,13 @@ function adminUpdateListener(sessionToken, id, patch) {
 function adminDeleteListener(sessionToken, id) {
   assertAdmin_(sessionToken); const found = findById_(id); if (!found) throw new Error('対象データが見つかりません。');
   const sh = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS);
-  sh.getRange(found.row,21).setValue('削除'); sh.getRange(found.row,3).setValue(new Date());
+  sh.getRange(found.row,22).setValue('削除'); sh.getRange(found.row,3).setValue(new Date());
   log_('DELETE',id,found.values[3]); return {ok:true};
 }
 
 function adminExportCsv(sessionToken) {
   assertAdmin_(sessionToken);
-  const values = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getDisplayValues().filter((r,i)=>i===0||r[20]!=='削除');
+  const values = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getDisplayValues().filter((r,i)=>i===0||r[21]!=='削除');
   const csv = values.map(row=>row.map(csvCell_).join(',')).join('\r\n');
   return { fileName:'monooki-residents-'+Utilities.formatDate(new Date(),Session.getScriptTimeZone(),'yyyyMMdd-HHmm')+'.csv', csv };
 }
@@ -176,23 +177,30 @@ function adminChangePassword(sessionToken,currentPassword,newPassword) {
 function setupListenersSheet_(ss) {
   let sh = ss.getSheetByName(APP.SHEET_LISTENERS);
   if (!sh) sh = ss.insertSheet(APP.SHEET_LISTENERS);
+
   if (sh.getLastRow() === 0) {
     sh.getRange(1,1,1,LISTENER_HEADERS.length).setValues([LISTENER_HEADERS]);
   } else {
     const oldHeaders = sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
-    if (oldHeaders.includes('お名前') && !oldHeaders.includes('Xのお名前')) {
-      const oldData = sh.getDataRange().getValues().slice(1);
-      const migrated = oldData.map(r => [
-        r[0],r[1],r[2],r[3],r[4],'','',r[5],r[6],r[7],'',r[8],r[9],r[10],r[11],r[12],r[13],r[14],r[15],r[16],r[17]
-      ]);
-      sh.clearContents();
-      sh.getRange(1,1,1,LISTENER_HEADERS.length).setValues([LISTENER_HEADERS]);
-      if (migrated.length) sh.getRange(2,1,migrated.length,LISTENER_HEADERS.length).setValues(migrated);
-    } else {
-      sh.getRange(1,1,1,LISTENER_HEADERS.length).setValues([LISTENER_HEADERS]);
-    }
+    const oldData = sh.getDataRange().getValues().slice(1);
+    const aliases = {
+      'Xのお名前':['Xのお名前','お名前'],
+      'Xの読み方':['Xの読み方','読み方']
+    };
+    const migrated = oldData.map(row => LISTENER_HEADERS.map(header => {
+      const names = aliases[header] || [header];
+      for (const name of names) {
+        const idx = oldHeaders.indexOf(name);
+        if (idx >= 0) return row[idx];
+      }
+      return '';
+    }));
+    sh.clearContents();
+    sh.getRange(1,1,1,LISTENER_HEADERS.length).setValues([LISTENER_HEADERS]);
+    if (migrated.length) sh.getRange(2,1,migrated.length,LISTENER_HEADERS.length).setValues(migrated);
   }
-  sh.getRange(1,1,1,LISTENER_HEADERS.length).setFontWeight('bold').setBackground('#ede9fe'); sh.setFrozenRows(1);
+  sh.getRange(1,1,1,LISTENER_HEADERS.length).setFontWeight('bold').setBackground('#ede9fe');
+  sh.setFrozenRows(1);
 }
 
 function setupSettingsSheet_(ss) {
@@ -229,25 +237,27 @@ function readSettings_() {
 }
 
 function getSpreadsheet_() { const id=getProp_(APP.PROP_SS_ID,''); if(!id) throw new Error('初期設定が未完了です。setupListenerBook を一度実行してください。'); return SpreadsheetApp.openById(id); }
-function findByToken_(token) { if(!token)return null; const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][18])===String(token)&&values[i][20]!=='削除') return {row:i+1,values:values[i]}; return null; }
+function findByToken_(token) { if(!token)return null; const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][19])===String(token)&&values[i][21]!=='削除') return {row:i+1,values:values[i]}; return null; }
 function findById_(id) { const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][0])===String(id)) return {row:i+1,values:values[i]}; return null; }
 function rowToListener_(r) {
-  const editToken = String(r[18] || '');
+  const editToken = String(r[19] || '');
   return {
-    id:String(r[0]),createdAt:toIso_(r[1]),updatedAt:toIso_(r[2]),xName:String(r[3]||''),xReading:String(r[4]||''),
-    youtubeName:String(r[5]||''),youtubeReading:String(r[6]||''),since:String(r[7]||''),source:String(r[8]||''),
-    favoriteStreams:String(r[9]||'').split(' / ').filter(Boolean),watchTime:String(r[10]||''),gamesAnime:String(r[11]||''),
-    hobby:String(r[12]||''),birthday:String(r[13]||''),callName:String(r[14]||''),message:String(r[15]||''),
-    adminTag:String(r[16]||''),adminMemo:String(r[17]||''),publicScope:String(r[19]||''),
+    id:String(r[0]),createdAt:toIso_(r[1]),updatedAt:toIso_(r[2]),xName:String(r[3]||''),xReading:String(r[4]||''),xUrl:String(r[5]||''),
+    youtubeName:String(r[6]||''),youtubeReading:String(r[7]||''),since:String(r[8]||''),source:String(r[9]||''),
+    favoriteStreams:String(r[10]||'').split(' / ').filter(Boolean),watchTime:String(r[11]||''),gamesAnime:String(r[12]||''),
+    hobby:String(r[13]||''),birthday:String(r[14]||''),callName:String(r[15]||''),message:String(r[16]||''),
+    adminTag:String(r[17]||''),adminMemo:String(r[18]||''),publicScope:String(r[20]||''),
     editUrl: editToken ? ScriptApp.getService().getUrl() + '?page=edit&token=' + encodeURIComponent(editToken) : ''
   };
 }
-function sanitizeListener_(form) { form=form||{}; return { xName:clean_(form.xName,100),xReading:clean_(form.xReading,100),youtubeName:clean_(form.youtubeName,100),youtubeReading:clean_(form.youtubeReading,100),since:clean_(form.since,100),source:clean_(form.source,100),favoriteStreams:Array.isArray(form.favoriteStreams)?form.favoriteStreams.map(x=>clean_(x,50)).filter(Boolean).slice(0,20):[],watchTime:clean_(form.watchTime,100),gamesAnime:clean_(form.gamesAnime,APP.MAX_TEXT),hobby:clean_(form.hobby,APP.MAX_TEXT),birthday:clean_(form.birthday,20),callName:clean_(form.callName,100),message:clean_(form.message,1000),publicScope:clean_(form.publicScope,100)||'配信者のみ' }; }
+
+function sanitizeListener_(form) { form=form||{}; return { xName:clean_(form.xName,100),xReading:clean_(form.xReading,100),xUrl:cleanUrl_(form.xUrl),youtubeName:clean_(form.youtubeName,100),youtubeReading:clean_(form.youtubeReading,100),since:clean_(form.since,100),source:clean_(form.source,100),favoriteStreams:Array.isArray(form.favoriteStreams)?form.favoriteStreams.map(x=>clean_(x,50)).filter(Boolean).slice(0,20):[],watchTime:clean_(form.watchTime,100),gamesAnime:clean_(form.gamesAnime,APP.MAX_TEXT),hobby:clean_(form.hobby,APP.MAX_TEXT),birthday:clean_(form.birthday,20),callName:clean_(form.callName,100),message:clean_(form.message,1000),publicScope:clean_(form.publicScope,100)||'配信者のみ' }; }
+function cleanUrl_(v){const s=clean_(v,300);if(!s)return '';if(!/^https:\/\/(x\.com|twitter\.com)\//i.test(s))throw new Error('XのURLは https://x.com/ から始まるURLを入力してください。');return s}
 function clean_(v,max){return String(v==null?'':v).replace(/[<>]/g,'').replace(/\u0000/g,'').trim().slice(0,max||APP.MAX_TEXT)}
 function normalize_(v){return String(v||'').normalize('NFKC').replace(/[\s　]+/g,'').toLowerCase()}
 function getProp_(key,fallback){return PropertiesService.getScriptProperties().getProperty(key)||fallback}
 function toIso_(v){try{return new Date(v).toISOString()}catch(e){return ''}}
-function birthdayKey_(v){const m=String(v||'').match(/(\d{1,2})\D+(\d{1,2})/);return m?Number(m[1])*100+Number(m[2]):9999}
+function birthdayKey_(v){const s=String(v||'');let m=s.match(/^\d{4}-(\d{2})-(\d{2})$/);if(m)return Number(m[1])*100+Number(m[2]);m=s.match(/(\d{1,2})\D+(\d{1,2})/);return m?Number(m[1])*100+Number(m[2]):9999}
 function csvCell_(v){const s=String(v==null?'':v).replace(/"/g,'""');return '"'+s+'"'}
 function assertAdmin_(token){if(!token||CacheService.getScriptCache().get('ADMIN_'+token)!=='1')throw new Error('管理セッションの有効期限が切れました。もう一度ログインしてください。')}
 function rateLimit_(key,seconds){const c=CacheService.getScriptCache(),k='RL_'+key+'_'+(Session.getTemporaryActiveUserKey()||'anon');if(c.get(k))throw new Error('連続操作を検知しました。少し時間を空けてください。');c.put(k,'1',seconds)}
