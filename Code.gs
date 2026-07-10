@@ -13,7 +13,7 @@ const APP = {
 const LISTENER_HEADERS = [
   'ID','登録日時','更新日時','Xのお名前','Xの読み方','XのURL','YouTubeのお名前','YouTubeの読み方',
   '推し始めた時期','知ったきっかけ','よく見る配信','配信をよく見る時間帯',
-  '血液型','MBTI診断','好きなゲーム・アニメ','趣味','誕生日','呼び方','メッセージ',
+  '血液型','MBTI診断','好きなゲーム・アニメ','趣味','誕生日','年齢','性別','呼び方','メッセージ',
   '管理タグ','管理メモ','編集トークン','公開範囲','状態'
 ];
 
@@ -81,7 +81,7 @@ function submitListener(form) {
   sh.appendRow([
     id, now, now, data.xName, data.xReading, data.xUrl, data.youtubeName, data.youtubeReading,
     data.since, data.source, data.favoriteStreams.join(' / '), data.watchTime,
-    data.bloodType, data.mbti, data.gamesAnime, data.hobby, data.birthday, data.callName, data.message,
+    data.bloodType, data.mbti, data.gamesAnime, data.hobby, data.birthday, data.age, data.gender, data.callName, data.message,
     '', '', token, data.publicScope, '有効'
   ]);
   log_('CREATE', id, data.xName);
@@ -105,8 +105,8 @@ function updateListenerByToken(token, form) {
   const updated = [
     old[0], old[1], new Date(), data.xName, data.xReading, data.xUrl, data.youtubeName, data.youtubeReading,
     data.since, data.source, data.favoriteStreams.join(' / '), data.watchTime,
-    data.bloodType, data.mbti, data.gamesAnime, data.hobby, data.birthday, data.callName, data.message,
-    old[19], old[20], old[21], data.publicScope, old[23]
+    data.bloodType, data.mbti, data.gamesAnime, data.hobby, data.birthday, data.age, data.gender, data.callName, data.message,
+    old[21], old[22], old[23], data.publicScope, old[25]
   ];
   getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getRange(found.row,1,1,updated.length).setValues([updated]);
   log_('UPDATE_BY_USER', old[0], data.xName);
@@ -124,7 +124,7 @@ function adminLogin(password) {
 function adminGetListeners(sessionToken, filters) {
   assertAdmin_(sessionToken);
   const values = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getValues().slice(1)
-    .filter(r => r[23] !== '削除').map(rowToListener_);
+    .filter(r => r[25] !== '削除').map(rowToListener_);
   const f = filters || {}; let list = values; const q = normalize_(f.query || '');
   if (q) list = list.filter(x => normalize_([x.xName,x.xReading,x.xUrl,x.youtubeName,x.youtubeReading,x.callName].join(' ')).includes(q));
   if (f.tag) list = list.filter(x => x.adminTag === f.tag);
@@ -140,7 +140,7 @@ function adminGetListeners(sessionToken, filters) {
 function adminGetAllListeners(sessionToken) {
   assertAdmin_(sessionToken);
   const list = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getDataRange().getValues().slice(1)
-    .filter(r => r[23] !== '削除')
+    .filter(r => r[25] !== '削除')
     .map(rowToListener_)
     .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
   return list;
@@ -157,9 +157,11 @@ function adminUpdateListener(sessionToken, id, patch) {
   if (patch.youtubeReading !== undefined) next[7] = clean_(patch.youtubeReading,100);
   if (patch.bloodType !== undefined) next[12] = clean_(patch.bloodType,20);
   if (patch.mbti !== undefined) next[13] = clean_(patch.mbti,200);
-  if (patch.callName !== undefined) next[17] = clean_(patch.callName,100);
-  if (patch.adminTag !== undefined) next[19] = clean_(patch.adminTag,100);
-  if (patch.adminMemo !== undefined) next[20] = clean_(patch.adminMemo,2000);
+  if (patch.age !== undefined) next[17] = clean_(patch.age,20);
+  if (patch.gender !== undefined) next[18] = clean_(patch.gender,20);
+  if (patch.callName !== undefined) next[19] = clean_(patch.callName,100);
+  if (patch.adminTag !== undefined) next[21] = clean_(patch.adminTag,100);
+  if (patch.adminMemo !== undefined) next[22] = clean_(patch.adminMemo,2000);
   getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS).getRange(found.row,1,1,next.length).setValues([next]);
   log_('UPDATE_BY_ADMIN',id,next[3]); return {ok:true};
 }
@@ -167,7 +169,7 @@ function adminUpdateListener(sessionToken, id, patch) {
 function adminDeleteListener(sessionToken, id) {
   assertAdmin_(sessionToken); const found = findById_(id); if (!found) throw new Error('対象データが見つかりません。');
   const sh = getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS);
-  sh.getRange(found.row,24).setValue('削除'); sh.getRange(found.row,3).setValue(new Date());
+  sh.getRange(found.row,26).setValue('削除'); sh.getRange(found.row,3).setValue(new Date());
   log_('DELETE',id,found.values[3]); return {ok:true};
 }
 
@@ -241,21 +243,21 @@ function readSettings_() {
 }
 
 function getSpreadsheet_() { const id=getProp_(APP.PROP_SS_ID,''); if(!id) throw new Error('初期設定が未完了です。setupListenerBook を一度実行してください。'); return SpreadsheetApp.openById(id); }
-function findByToken_(token) { if(!token)return null; const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][21])===String(token)&&values[i][23]!=='削除') return {row:i+1,values:values[i]}; return null; }
+function findByToken_(token) { if(!token)return null; const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][23])===String(token)&&values[i][25]!=='削除') return {row:i+1,values:values[i]}; return null; }
 function findById_(id) { const sh=getSpreadsheet_().getSheetByName(APP.SHEET_LISTENERS), values=sh.getDataRange().getValues(); for(let i=1;i<values.length;i++) if(String(values[i][0])===String(id)) return {row:i+1,values:values[i]}; return null; }
 function rowToListener_(r) {
-  const editToken = String(r[21] || '');
+  const editToken = String(r[23] || '');
   return {
     id:String(r[0]),createdAt:toIso_(r[1]),updatedAt:toIso_(r[2]),xName:String(r[3]||''),xReading:String(r[4]||''),xUrl:String(r[5]||''),
     youtubeName:String(r[6]||''),youtubeReading:String(r[7]||''),since:monthInput_(r[8]),sinceDisplay:formatMonthJa_(r[8]),source:String(r[9]||''),
     favoriteStreams:String(r[10]||'').split(' / ').filter(Boolean),watchTime:String(r[11]||''),bloodType:String(r[12]||''),mbti:String(r[13]||''),gamesAnime:String(r[14]||''),
-    hobby:String(r[15]||''),birthday:dateInput_(r[16]),birthdayDisplay:formatDateJa_(r[16]),callName:String(r[17]||''),message:String(r[18]||''),
-    adminTag:String(r[19]||''),adminMemo:String(r[20]||''),publicScope:String(r[22]||''),
+    hobby:String(r[15]||''),birthday:birthdayInput_(r[16]),birthdayDisplay:formatBirthdayJa_(r[16]),age:String(r[17]||'ひみつ♡'),gender:String(r[18]||'ひみつ♡'),callName:String(r[19]||''),message:String(r[20]||''),
+    adminTag:String(r[21]||''),adminMemo:String(r[22]||''),publicScope:String(r[24]||''),
     editUrl: editToken ? ScriptApp.getService().getUrl() + '?page=edit&token=' + encodeURIComponent(editToken) : ''
   };
 }
 
-function sanitizeListener_(form) { form=form||{}; return { xName:clean_(form.xName,100),xReading:clean_(form.xReading,100),xUrl:cleanUrl_(form.xUrl),youtubeName:clean_(form.youtubeName,100),youtubeReading:clean_(form.youtubeReading,100),since:clean_(form.since,100),source:clean_(form.source,100),favoriteStreams:Array.isArray(form.favoriteStreams)?form.favoriteStreams.map(x=>clean_(x,50)).filter(Boolean).slice(0,20):[],watchTime:clean_(form.watchTime,100),bloodType:clean_(form.bloodType,20),mbti:clean_(form.mbti,200),gamesAnime:clean_(form.gamesAnime,APP.MAX_TEXT),hobby:clean_(form.hobby,APP.MAX_TEXT),birthday:clean_(form.birthday,20),callName:clean_(form.callName,100),message:clean_(form.message,1000),publicScope:clean_(form.publicScope,100)||'配信者のみ' }; }
+function sanitizeListener_(form) { form=form||{}; return { xName:clean_(form.xName,100),xReading:clean_(form.xReading,100),xUrl:cleanUrl_(form.xUrl),youtubeName:clean_(form.youtubeName,100),youtubeReading:clean_(form.youtubeReading,100),since:clean_(form.since,100),source:clean_(form.source,100),favoriteStreams:Array.isArray(form.favoriteStreams)?form.favoriteStreams.map(x=>clean_(x,50)).filter(Boolean).slice(0,20):[],watchTime:clean_(form.watchTime,100),bloodType:clean_(form.bloodType,20),mbti:clean_(form.mbti,200),gamesAnime:clean_(form.gamesAnime,APP.MAX_TEXT),hobby:clean_(form.hobby,APP.MAX_TEXT),birthday:cleanBirthday_(form.birthday),age:clean_(form.age,20)||'ひみつ♡',gender:clean_(form.gender,20)||'ひみつ♡',callName:clean_(form.callName,100),message:clean_(form.message,1000),publicScope:clean_(form.publicScope,100)||'配信者のみ' }; }
 function cleanUrl_(v){const s=clean_(v,300);if(!s)return '';if(!/^https:\/\/(x\.com|twitter\.com)\//i.test(s))throw new Error('XのURLは https://x.com/ から始まるURLを入力してください。');return s}
 function clean_(v,max){return String(v==null?'':v).replace(/[<>]/g,'').replace(/\u0000/g,'').trim().slice(0,max||APP.MAX_TEXT)}
 function normalize_(v){return String(v||'').normalize('NFKC').replace(/[\s　]+/g,'').toLowerCase()}
@@ -267,19 +269,20 @@ function monthInput_(v){
   if(m)return m[1]+'-'+String(Number(m[2])).padStart(2,'0');
   const d=new Date(s);return isNaN(d)?s:Utilities.formatDate(d,Session.getScriptTimeZone(),'yyyy-MM');
 }
-function dateInput_(v){
+function birthdayInput_(v){
   if(!v)return '';
-  if(Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v))return Utilities.formatDate(v,Session.getScriptTimeZone(),'yyyy-MM-dd');
+  if(Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v))return Utilities.formatDate(v,Session.getScriptTimeZone(),'MM-dd');
   const s=String(v).trim();
-  const m=s.match(/^(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})/);
-  if(m)return m[1]+'-'+String(Number(m[2])).padStart(2,'0')+'-'+String(Number(m[3])).padStart(2,'0');
-  const d=new Date(s);return isNaN(d)?s:Utilities.formatDate(d,Session.getScriptTimeZone(),'yyyy-MM-dd');
+  let m=s.match(/^(?:\d{4}[-\/年])?(\d{1,2})[-\/月](\d{1,2})/);
+  if(m)return String(Number(m[1])).padStart(2,'0')+'-'+String(Number(m[2])).padStart(2,'0');
+  const d=new Date(s);return isNaN(d)?s:Utilities.formatDate(d,Session.getScriptTimeZone(),'MM-dd');
 }
 function formatMonthJa_(v){const s=monthInput_(v),m=s.match(/^(\d{4})-(\d{2})$/);return m?m[1]+'年'+Number(m[2])+'月':s}
-function formatDateJa_(v){const s=dateInput_(v),m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[1]+'年'+Number(m[2])+'月'+Number(m[3])+'日':s}
+function formatBirthdayJa_(v){const s=birthdayInput_(v),m=s.match(/^(\d{2})-(\d{2})$/);return m?Number(m[1])+'月'+Number(m[2])+'日':s}
+function cleanBirthday_(v){const s=birthdayInput_(v);if(!s)return '';const m=s.match(/^(\d{2})-(\d{2})$/);if(!m)throw new Error('誕生日は月と日を選択してください。');const month=Number(m[1]),day=Number(m[2]);if(month<1||month>12||day<1||day>31)throw new Error('誕生日が正しくありません。');return s}
 function getProp_(key,fallback){return PropertiesService.getScriptProperties().getProperty(key)||fallback}
 function toIso_(v){try{return new Date(v).toISOString()}catch(e){return ''}}
-function birthdayKey_(v){const s=String(v||'');let m=s.match(/^\d{4}-(\d{2})-(\d{2})$/);if(m)return Number(m[1])*100+Number(m[2]);m=s.match(/(\d{1,2})\D+(\d{1,2})/);return m?Number(m[1])*100+Number(m[2]):9999}
+function birthdayKey_(v){const s=birthdayInput_(v),m=s.match(/^(\d{2})-(\d{2})$/);return m?Number(m[1])*100+Number(m[2]):9999}-(\d{2})-(\d{2})$/);if(m)return Number(m[1])*100+Number(m[2]);m=s.match(/(\d{1,2})\D+(\d{1,2})/);return m?Number(m[1])*100+Number(m[2]):9999}
 function csvCell_(v){const s=String(v==null?'':v).replace(/"/g,'""');return '"'+s+'"'}
 function assertAdmin_(token){if(!token||CacheService.getScriptCache().get('ADMIN_'+token)!=='1')throw new Error('管理セッションの有効期限が切れました。もう一度ログインしてください。')}
 function rateLimit_(key,seconds){const c=CacheService.getScriptCache(),k='RL_'+key+'_'+(Session.getTemporaryActiveUserKey()||'anon');if(c.get(k))throw new Error('連続操作を検知しました。少し時間を空けてください。');c.put(k,'1',seconds)}
