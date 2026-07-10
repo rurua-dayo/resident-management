@@ -90,6 +90,7 @@ input:focus,select:focus,textarea:focus{
   background:white;
 }
 textarea{min-height:110px;resize:vertical}
+.birthday-selects{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .checks{display:flex;flex-wrap:wrap;gap:9px}
 .chip{
   display:inline-flex;
@@ -122,6 +123,13 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .success{background:#effcf5;color:#28704b;border-color:#cdeedc}
 .hidden{display:none!important}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.toolbar>*{flex:1;min-width:160px}
+.update-button{display:block;width:100%;margin-top:14px}
+.stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin:16px 0}
+.stat-card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:18px;box-shadow:0 8px 20px rgba(199,113,151,.08)}
+.stat-card h3{font-size:1rem;margin-bottom:10px}
+.stat-items{display:flex;flex-direction:column;gap:7px}
+.stat-item{display:flex;justify-content:space-between;gap:12px;padding:7px 9px;border-radius:10px;background:#fff7fb;font-size:.9rem}
+.stat-item b{white-space:nowrap;color:#735b9d}
 .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .listener-card{padding:20px;border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 8px 20px rgba(199,113,151,.08)}
 .tag{display:inline-block;background:#f2eaff;color:#735b9d;border-radius:999px;padding:5px 10px;font-size:.8rem;font-weight:800}
@@ -132,7 +140,7 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none}
 #done{text-align:center}
 #done h2{font-size:1.8rem;color:#d76893}
 @media(max-width:700px){
-  .grid,.cards{grid-template-columns:1fr}
+  .grid,.cards,.stats-grid{grid-template-columns:1fr}
   .wrap{padding:12px 12px 36px}
   .hero{border-radius:22px;padding:28px 18px}
   .card{padding:18px;border-radius:20px}
