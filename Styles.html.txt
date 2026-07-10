@@ -1,0 +1,13 @@
+<style>
+:root{--theme:#7c5cff;--bg:#f7f7fb;--card:#fff;--text:#25252d;--muted:#6f7080;--line:#e8e8ef;--danger:#c23b45}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans JP",sans-serif;background:var(--bg);color:var(--text)}
+.wrap{max-width:900px;margin:auto;padding:20px}.hero{padding:28px 22px;background:linear-gradient(135deg,var(--theme),#b6a6ff);color:white;border-radius:20px;margin-bottom:18px;box-shadow:0 10px 30px rgba(0,0,0,.08)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;margin:14px 0;box-shadow:0 8px 24px rgba(30,30,60,.05)}
+h1,h2,h3{margin:0 0 10px}.muted{color:var(--muted);font-size:.93rem}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.full{grid-column:1/-1}
+label{display:block;font-weight:700;margin-bottom:6px}input,select,textarea{width:100%;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:white;font:inherit}textarea{min-height:100px;resize:vertical}
+.checks{display:flex;flex-wrap:wrap;gap:8px}.chip{display:inline-flex;gap:6px;align-items:center;border:1px solid var(--line);border-radius:999px;padding:8px 12px;background:white}.chip input{width:auto}
+button{border:0;border-radius:12px;padding:12px 18px;font:inherit;font-weight:700;cursor:pointer}.primary{background:var(--theme);color:white}.secondary{background:#eceaf7;color:#333}.danger{background:#fff0f1;color:var(--danger)}button:disabled{opacity:.5;cursor:not-allowed}
+.notice{padding:13px;border-radius:12px;background:#f0edff}.error{background:#fff0f1;color:#9f2631}.success{background:#ecfff4;color:#176c3b}.hidden{display:none!important}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end}.toolbar>*{flex:1;min-width:160px}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.listener-card{padding:18px;border:1px solid var(--line);border-radius:16px;background:white}.tag{display:inline-block;background:#eeeafd;border-radius:999px;padding:4px 9px;font-size:.8rem}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.small{font-size:.86rem}.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:20px}.modal-box{background:white;border-radius:18px;padding:20px;max-width:680px;width:100%;max-height:90vh;overflow:auto}
+@media(max-width:700px){.grid,.cards{grid-template-columns:1fr}.wrap{padding:12px}.hero{border-radius:16px}.card{padding:16px}}
+</style>
