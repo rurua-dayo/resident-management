@@ -40,7 +40,7 @@ function setupListenerBook() {
   setupSettingsSheet_(ss);
   setupLogsSheet_(ss);
 
-  if (!props.getProperty(APP.PROP_ADMIN_PASS)) props.setProperty(APP.PROP_ADMIN_PASS, 'change-me');
+  props.setProperty(APP.PROP_ADMIN_PASS, 'mimorin');
   if (!props.getProperty(APP.PROP_APP_NAME)) props.setProperty(APP.PROP_APP_NAME, '物置の住人登録届');
   if (!props.getProperty(APP.PROP_THEME)) props.setProperty(APP.PROP_THEME, '#7c5cff');
 
@@ -114,7 +114,7 @@ function updateListenerByToken(token, form) {
 }
 
 function adminLogin(password) {
-  const expected = getProp_(APP.PROP_ADMIN_PASS, 'change-me');
+  const expected = getProp_(APP.PROP_ADMIN_PASS, 'mimorin');
   if (String(password || '') !== expected) { rateLimit_('adminLoginFail',5); throw new Error('管理パスワードが違います。'); }
   const token = Utilities.getUuid();
   CacheService.getScriptCache().put('ADMIN_'+token,'1',APP.SESSION_TTL);
@@ -168,7 +168,7 @@ function adminExportCsv(sessionToken) {
 
 function adminChangePassword(sessionToken,currentPassword,newPassword) {
   assertAdmin_(sessionToken);
-  if (String(currentPassword||'') !== getProp_(APP.PROP_ADMIN_PASS,'change-me')) throw new Error('現在のパスワードが違います。');
+  if (String(currentPassword||'') !== getProp_(APP.PROP_ADMIN_PASS,'mimorin')) throw new Error('現在のパスワードが違います。');
   if (String(newPassword||'').length < 8) throw new Error('新しいパスワードは8文字以上にしてください。');
   PropertiesService.getScriptProperties().setProperty(APP.PROP_ADMIN_PASS,String(newPassword)); log_('CHANGE_PASSWORD','',''); return {ok:true};
 }
