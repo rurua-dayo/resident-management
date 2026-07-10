@@ -245,9 +245,9 @@ function rowToListener_(r) {
   const editToken = String(r[21] || '');
   return {
     id:String(r[0]),createdAt:toIso_(r[1]),updatedAt:toIso_(r[2]),xName:String(r[3]||''),xReading:String(r[4]||''),xUrl:String(r[5]||''),
-    youtubeName:String(r[6]||''),youtubeReading:String(r[7]||''),since:String(r[8]||''),source:String(r[9]||''),
+    youtubeName:String(r[6]||''),youtubeReading:String(r[7]||''),since:monthInput_(r[8]),sinceDisplay:formatMonthJa_(r[8]),source:String(r[9]||''),
     favoriteStreams:String(r[10]||'').split(' / ').filter(Boolean),watchTime:String(r[11]||''),bloodType:String(r[12]||''),mbti:String(r[13]||''),gamesAnime:String(r[14]||''),
-    hobby:String(r[15]||''),birthday:String(r[16]||''),callName:String(r[17]||''),message:String(r[18]||''),
+    hobby:String(r[15]||''),birthday:dateInput_(r[16]),birthdayDisplay:formatDateJa_(r[16]),callName:String(r[17]||''),message:String(r[18]||''),
     adminTag:String(r[19]||''),adminMemo:String(r[20]||''),publicScope:String(r[22]||''),
     editUrl: editToken ? ScriptApp.getService().getUrl() + '?page=edit&token=' + encodeURIComponent(editToken) : ''
   };
@@ -257,6 +257,24 @@ function sanitizeListener_(form) { form=form||{}; return { xName:clean_(form.xNa
 function cleanUrl_(v){const s=clean_(v,300);if(!s)return '';if(!/^https:\/\/(x\.com|twitter\.com)\//i.test(s))throw new Error('XのURLは https://x.com/ から始まるURLを入力してください。');return s}
 function clean_(v,max){return String(v==null?'':v).replace(/[<>]/g,'').replace(/\u0000/g,'').trim().slice(0,max||APP.MAX_TEXT)}
 function normalize_(v){return String(v||'').normalize('NFKC').replace(/[\s　]+/g,'').toLowerCase()}
+function monthInput_(v){
+  if(!v)return '';
+  if(Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v))return Utilities.formatDate(v,Session.getScriptTimeZone(),'yyyy-MM');
+  const s=String(v).trim();
+  const m=s.match(/^(\d{4})[-\/年](\d{1,2})/);
+  if(m)return m[1]+'-'+String(Number(m[2])).padStart(2,'0');
+  const d=new Date(s);return isNaN(d)?s:Utilities.formatDate(d,Session.getScriptTimeZone(),'yyyy-MM');
+}
+function dateInput_(v){
+  if(!v)return '';
+  if(Object.prototype.toString.call(v)==='[object Date]'&&!isNaN(v))return Utilities.formatDate(v,Session.getScriptTimeZone(),'yyyy-MM-dd');
+  const s=String(v).trim();
+  const m=s.match(/^(\d{4})[-\/年](\d{1,2})[-\/月](\d{1,2})/);
+  if(m)return m[1]+'-'+String(Number(m[2])).padStart(2,'0')+'-'+String(Number(m[3])).padStart(2,'0');
+  const d=new Date(s);return isNaN(d)?s:Utilities.formatDate(d,Session.getScriptTimeZone(),'yyyy-MM-dd');
+}
+function formatMonthJa_(v){const s=monthInput_(v),m=s.match(/^(\d{4})-(\d{2})$/);return m?m[1]+'年'+Number(m[2])+'月':s}
+function formatDateJa_(v){const s=dateInput_(v),m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?m[1]+'年'+Number(m[2])+'月'+Number(m[3])+'日':s}
 function getProp_(key,fallback){return PropertiesService.getScriptProperties().getProperty(key)||fallback}
 function toIso_(v){try{return new Date(v).toISOString()}catch(e){return ''}}
 function birthdayKey_(v){const s=String(v||'');let m=s.match(/^\d{4}-(\d{2})-(\d{2})$/);if(m)return Number(m[1])*100+Number(m[2]);m=s.match(/(\d{1,2})\D+(\d{1,2})/);return m?Number(m[1])*100+Number(m[2]):9999}
